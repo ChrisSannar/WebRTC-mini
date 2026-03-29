@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebRTC Mini</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+    h1 { color: #333; }
+    .status { padding: 10px; background: #e0e0e0; border-radius: 4px; }
+    .online { background: #90ee90; }
+    .offline { background: #ffcccb; }
+  </style>
+</head>
+<body>
+  <h1>WebRTC Mini</h1>
+  <p>Status: <span id="status" class="status">Checking...</span></p>
+  <script>
+    const status = document.getElementById('status');
+    function updateStatus() {
+      status.textContent = navigator.onLine ? 'Online' : 'Offline';
+      status.className = 'status ' + (navigator.onLine ? 'online' : 'offline');
+    }
+    updateStatus();
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+  </script>
+</body>
+</html>

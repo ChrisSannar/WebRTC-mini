@@ -13,9 +13,5 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "."
-  },
-  "references": [
-    { "path": "./packages/webrtc" },
-    { "path": "./packages/pwa" }
-  ]
+  }
 }
