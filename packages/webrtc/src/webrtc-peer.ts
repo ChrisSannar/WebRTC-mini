@@ -1,6 +1,12 @@
-import type { PeerId, Message, PeerInfo } from './types.js';
-import { defaultIceServers, type IceServerConfig } from './config/index.js';
-import { createPeerConnection, serializeOffer, deserializeOffer, serializeAnswer, deserializeAnswer } from './helpers/index.js';
+import type { PeerId, Message, PeerInfo } from "./types.js";
+import { defaultIceServers, type IceServerConfig } from "./config/index.js";
+import {
+  createPeerConnection,
+  serializeOffer,
+  deserializeOffer,
+  serializeAnswer,
+  deserializeAnswer,
+} from "./helpers/index.js";
 
 interface PeerState {
   id: PeerId;
@@ -15,7 +21,8 @@ export class WebRTCPeer {
   private localId: PeerId;
   private iceServers: IceServerConfig;
   private peerUpdateCallbacks: ((_peers: PeerInfo[]) => void)[] = [];
-  private messageCallbacks: ((_peerId: PeerId, _message: Message) => void)[] = [];
+  private messageCallbacks: ((_peerId: PeerId, _message: Message) => void)[] =
+    [];
   private pendingIceCandidates: Map<PeerId, RTCIceCandidateInit[]> = new Map();
 
   constructor(iceServers: IceServerConfig = defaultIceServers) {
@@ -31,7 +38,7 @@ export class WebRTCPeer {
     const peerId = generatePeerId();
     const pc = this.createPeerConnection(peerId);
 
-    const dataChannel = pc.createDataChannel('data');
+    const dataChannel = pc.createDataChannel("data");
     this.setupDataChannel(peerId, dataChannel);
 
     const offer = await pc.createOffer();
@@ -66,7 +73,7 @@ export class WebRTCPeer {
   async acceptAnswer(answer: string): Promise<void> {
     const peerState = this.findPendingPeer();
     if (!peerState) {
-      throw new Error('No pending peer connection found');
+      throw new Error("No pending peer connection found");
     }
 
     const answerDesc = deserializeAnswer(answer);
@@ -94,7 +101,7 @@ export class WebRTCPeer {
   send(peerId: PeerId, message: Message): void {
     const state = this.peers.get(peerId);
     if (!state || !state.connected) {
-      throw new Error('Peer not connected');
+      throw new Error("Peer not connected");
     }
     state.dataChannel.send(JSON.stringify(message));
   }
@@ -111,7 +118,7 @@ export class WebRTCPeer {
     const pc = createPeerConnection({
       iceServersConfig: this.iceServers,
       onIceCandidate: (candidate) => {
-        console.warn('ICE candidate for', peerId, candidate);
+        console.warn("ICE candidate for", peerId, candidate);
       },
       onConnectionStateChange: (state) => {
         this.handleConnectionStateChange(peerId, state);
@@ -140,7 +147,7 @@ export class WebRTCPeer {
         const message = JSON.parse(event.data) as Message;
         this.handleMessage(peerId, message);
       } catch (err) {
-        console.error('Failed to parse message:', err);
+        console.error("Failed to parse message:", err);
       }
     };
 
@@ -155,13 +162,20 @@ export class WebRTCPeer {
     };
   }
 
-  private handleConnectionStateChange(peerId: PeerId, state: RTCPeerConnectionState): void {
+  private handleConnectionStateChange(
+    peerId: PeerId,
+    state: RTCPeerConnectionState,
+  ): void {
     const peerState = this.peers.get(peerId);
     if (!peerState) return;
 
-    if (state === 'connected') {
+    if (state === "connected") {
       peerState.connected = true;
-    } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+    } else if (
+      state === "disconnected" ||
+      state === "failed" ||
+      state === "closed"
+    ) {
       peerState.connected = false;
     }
 
@@ -169,7 +183,7 @@ export class WebRTCPeer {
   }
 
   private handleMessage(peerId: PeerId, message: Message): void {
-    if (message.type === 'ping') {
+    if (message.type === "ping") {
       const peerState = this.peers.get(peerId);
       if (peerState) {
         peerState.lastPing = message.timestamp;
@@ -200,5 +214,13 @@ export class WebRTCPeer {
 }
 
 function generatePeerId(): PeerId {
-  return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for browsers without randomUUID (Safari)
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }

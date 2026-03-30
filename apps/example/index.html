@@ -1,162 +1,277 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebRTC Mini</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-    h1 { color: #333; }
-    h2 { margin-top: 24px; font-size: 18px; }
-    label { display: block; margin-bottom: 4px; font-weight: bold; }
-    textarea { width: 100%; height: 80px; font-family: monospace; font-size: 12px; padding: 8px; box-sizing: border-box; }
-    button { margin-top: 8px; padding: 8px 16px; cursor: pointer; }
-    .status { padding: 10px; background: #e0e0e0; border-radius: 4px; }
-    .online { background: #90ee90; }
-    .offline { background: #ffcccb; }
-    .peer-list { list-style: none; padding: 0; }
-    .peer-item { background: #f5f5f5; padding: 12px; margin-bottom: 8px; border-radius: 4px; }
-    .peer-item .id { font-family: monospace; font-size: 12px; word-break: break-all; }
-    .peer-item .info { margin-top: 4px; font-size: 14px; }
-    .connected { color: green; }
-    .disconnected { color: red; }
-    .error { color: red; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <h1>WebRTC Mini</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebRTC Mini</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      h2 {
+        margin-top: 24px;
+        font-size: 18px;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: bold;
+      }
+      textarea {
+        width: 100%;
+        height: 80px;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 8px;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+      .status {
+        padding: 10px;
+        background: #e0e0e0;
+        border-radius: 4px;
+      }
+      .online {
+        background: #90ee90;
+      }
+      .offline {
+        background: #ffcccb;
+      }
+      .peer-list {
+        list-style: none;
+        padding: 0;
+      }
+      .peer-item {
+        background: #f5f5f5;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+      }
+      .peer-item .id {
+        font-family: monospace;
+        font-size: 12px;
+        word-break: break-all;
+      }
+      .peer-item .info {
+        margin-top: 4px;
+        font-size: 14px;
+      }
+      .connected {
+        color: green;
+      }
+      .disconnected {
+        color: red;
+      }
+      .error {
+        color: red;
+        margin-top: 8px;
+      }
+    </style>
+    <noscript>
+      <p style="color: red; font-weight: bold">
+        JavaScript is required. Please enable JavaScript in your browser.
+      </p>
+    </noscript>
+  </head>
+  <body>
+    <p id="js-check" style="color: red">
+      If you see this, JavaScript is not running!
+    </p>
+    <h1>WebRTC Mini</h1>
 
-  <section>
-    <h2>1. Local Token</h2>
-    <textarea id="local-token" readonly placeholder="Your token will appear here..."></textarea>
-    <button id="generate-offer">Generate Offer</button>
-  </section>
+    <section>
+      <h2>1. Local Token</h2>
+      <textarea
+        id="local-token"
+        readonly
+        placeholder="Your token will appear here..."
+      ></textarea>
+      <button id="generate-offer">Generate Offer</button>
+    </section>
 
-  <section>
-    <h2>2. Remote Token</h2>
-    <textarea id="remote-token" placeholder="Paste remote token here..."></textarea>
-    <button id="connect">Connect</button>
-    <button id="accept-answer" style="display:none;">Accept Answer</button>
-    <p id="connection-error" class="error"></p>
-  </section>
+    <section>
+      <h2>2. Remote Token</h2>
+      <textarea
+        id="remote-token"
+        placeholder="Paste remote token here..."
+      ></textarea>
+      <button id="connect">Connect</button>
+      <button id="accept-answer" style="display: none">Accept Answer</button>
+      <p id="connection-error" class="error"></p>
+    </section>
 
-  <section>
-    <h2>3. Status</h2>
-    <p>Network: <span id="network-status" class="status">Checking...</span></p>
-  </section>
+    <section>
+      <h2>3. Status</h2>
+      <p>
+        Network: <span id="network-status" class="status">Checking...</span>
+      </p>
+      <p>WebRTC: <span id="webrtc-status">Checking...</span></p>
+    </section>
 
-  <section>
-    <h2>4. Peers</h2>
-    <ul id="peer-list" class="peer-list">
-      <li>No peers connected</li>
-    </ul>
-  </section>
+    <section>
+      <h2>4. Peers</h2>
+      <ul id="peer-list" class="peer-list">
+        <li>No peers connected</li>
+      </ul>
+    </section>
 
-  <script type="module">
-    import { WebRTCPeer } from './dist/index.js';
+    <script type="module">
+      // Hide the "JS not running" message
+      const jsCheck = document.getElementById("js-check");
+      if (jsCheck) jsCheck.style.display = "none";
 
-    const peer = new WebRTCPeer();
-    let pendingAnswer = null;
+      // Global error handler
+      window.onerror = function (msg, url, line, col, error) {
+        console.error("Global error:", msg, "at line", line);
+        document.getElementById("js-check").textContent = "Error: " + msg;
+        document.getElementById("js-check").style.display = "block";
+      };
 
-    const localTokenEl = document.getElementById('local-token');
-    const remoteTokenEl = document.getElementById('remote-token');
-    const generateOfferBtn = document.getElementById('generate-offer');
-    const connectBtn = document.getElementById('connect');
-    const acceptAnswerBtn = document.getElementById('accept-answer');
-    const connectionErrorEl = document.getElementById('connection-error');
-    const networkStatusEl = document.getElementById('network-status');
-    const peerListEl = document.getElementById('peer-list');
+      import { WebRTCPeer } from "./dist/index.js";
 
-    function updateNetworkStatus() {
-      networkStatusEl.textContent = navigator.onLine ? 'Online' : 'Offline';
-      networkStatusEl.className = 'status ' + (navigator.onLine ? 'online' : 'offline');
-    }
+      const peer = new WebRTCPeer();
+      let pendingAnswer = null;
 
-    function updatePeerList() {
-      const peers = peer.getPeers();
-      if (peers.length === 0) {
-        peerListEl.innerHTML = '<li>No peers connected</li>';
-        return;
+      const localTokenEl = document.getElementById("local-token");
+      const remoteTokenEl = document.getElementById("remote-token");
+      const generateOfferBtn = document.getElementById("generate-offer");
+      const connectBtn = document.getElementById("connect");
+      const acceptAnswerBtn = document.getElementById("accept-answer");
+      const connectionErrorEl = document.getElementById("connection-error");
+      const networkStatusEl = document.getElementById("network-status");
+      const peerListEl = document.getElementById("peer-list");
+
+      function updateNetworkStatus() {
+        networkStatusEl.textContent = navigator.onLine ? "Online" : "Offline";
+        networkStatusEl.className =
+          "status " + (navigator.onLine ? "online" : "offline");
       }
 
-      peerListEl.innerHTML = peers.map(p => `
+      function updatePeerList() {
+        const peers = peer.getPeers();
+        if (peers.length === 0) {
+          peerListEl.innerHTML = "<li>No peers connected</li>";
+          return;
+        }
+
+        peerListEl.innerHTML = peers
+          .map(
+            (p) => `
         <li class="peer-item">
           <div class="id">${p.id}</div>
           <div class="info">
-            Status: <span class="${p.connected ? 'connected' : 'disconnected'}">${p.connected ? 'Connected' : 'Disconnected'}</span>
-            ${p.lastPing ? ` | Last ping: ${new Date(p.lastPing).toLocaleTimeString()}` : ''}
+            Status: <span class="${p.connected ? "connected" : "disconnected"}">${p.connected ? "Connected" : "Disconnected"}</span>
+            ${p.lastPing ? ` | Last ping: ${new Date(p.lastPing).toLocaleTimeString()}` : ""}
           </div>
-          <button class="ping-btn" data-peer-id="${p.id}" ${!p.connected ? 'disabled' : ''}>Ping</button>
+          <button class="ping-btn" data-peer-id="${p.id}" ${!p.connected ? "disabled" : ""}>Ping</button>
         </li>
-      `).join('');
+      `,
+          )
+          .join("");
 
-      document.querySelectorAll('.ping-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const peerId = btn.dataset.peerId;
-          peer.send(peerId, { type: 'ping', from: peer.getLocalId(), timestamp: Date.now() });
+        document.querySelectorAll(".ping-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const peerId = btn.dataset.peerId;
+            peer.send(peerId, {
+              type: "ping",
+              from: peer.getLocalId(),
+              timestamp: Date.now(),
+            });
+          });
         });
+      }
+
+      peer.onPeerUpdate(() => {
+        updatePeerList();
       });
-    }
 
-    peer.onPeerUpdate(() => {
-      updatePeerList();
-    });
+      peer.onMessage((peerId, message) => {
+        console.log("Message from", peerId, ":", message);
+        if (message.type === "ping") {
+          peer.send(peerId, {
+            type: "pong",
+            from: peer.getLocalId(),
+            timestamp: Date.now(),
+          });
+        }
+      });
 
-    peer.onMessage((peerId, message) => {
-      console.log('Message from', peerId, ':', message);
-      if (message.type === 'ping') {
-        peer.send(peerId, { type: 'pong', from: peer.getLocalId(), timestamp: Date.now() });
-      }
-    });
+      generateOfferBtn.addEventListener("click", async () => {
+        console.log("Generate offer clicked");
+        try {
+          console.log("Calling createOffer...");
+          const offer = await peer.createOffer();
+          console.log("Offer generated:", offer.length, "chars");
+          localTokenEl.value = offer;
+          connectionErrorEl.textContent = "";
+        } catch (err) {
+          console.error("Generate offer error:", err);
+          connectionErrorEl.textContent =
+            "Error: " + err.message + " - " + err.stack;
+        }
+      });
 
-    generateOfferBtn.addEventListener('click', async () => {
-      try {
-        const offer = await peer.createOffer();
-        localTokenEl.value = offer;
-        connectionErrorEl.textContent = '';
-      } catch (err) {
-        connectionErrorEl.textContent = 'Error: ' + err.message;
-      }
-    });
+      connectBtn.addEventListener("click", async () => {
+        const remoteToken = remoteTokenEl.value.trim();
+        if (!remoteToken) {
+          connectionErrorEl.textContent = "Please enter a remote token";
+          return;
+        }
 
-    connectBtn.addEventListener('click', async () => {
-      const remoteToken = remoteTokenEl.value.trim();
-      if (!remoteToken) {
-        connectionErrorEl.textContent = 'Please enter a remote token';
-        return;
-      }
+        try {
+          const answer = await peer.acceptOffer(remoteToken);
+          pendingAnswer = answer;
+          remoteTokenEl.value = answer;
+          connectBtn.style.display = "none";
+          acceptAnswerBtn.style.display = "inline-block";
+          connectionErrorEl.textContent =
+            "Answer generated. Copy it and send to the other device.";
+        } catch (err) {
+          connectionErrorEl.textContent = "Error: " + err.message;
+        }
+      });
 
-      try {
-        const answer = await peer.acceptOffer(remoteToken);
-        pendingAnswer = answer;
-        remoteTokenEl.value = answer;
-        connectBtn.style.display = 'none';
-        acceptAnswerBtn.style.display = 'inline-block';
-        connectionErrorEl.textContent = 'Answer generated. Copy it and send to the other device.';
-      } catch (err) {
-        connectionErrorEl.textContent = 'Error: ' + err.message;
-      }
-    });
+      acceptAnswerBtn.addEventListener("click", async () => {
+        const answer = remoteTokenEl.value.trim();
+        if (!answer) {
+          connectionErrorEl.textContent = "Please enter the answer";
+          return;
+        }
 
-    acceptAnswerBtn.addEventListener('click', async () => {
-      const answer = remoteTokenEl.value.trim();
-      if (!answer) {
-        connectionErrorEl.textContent = 'Please enter the answer';
-        return;
-      }
+        try {
+          await peer.acceptAnswer(answer);
+          acceptAnswerBtn.style.display = "none";
+          connectionErrorEl.textContent = "Connected!";
+        } catch (err) {
+          connectionErrorEl.textContent = "Error: " + err.message;
+        }
+      });
 
-      try {
-        await peer.acceptAnswer(answer);
-        acceptAnswerBtn.style.display = 'none';
-        connectionErrorEl.textContent = 'Connected!';
-      } catch (err) {
-        connectionErrorEl.textContent = 'Error: ' + err.message;
-      }
-    });
+      updateNetworkStatus();
+      window.addEventListener("online", updateNetworkStatus);
+      window.addEventListener("offline", updateNetworkStatus);
 
-    updateNetworkStatus();
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
-  </script>
-</body>
+      // Check WebRTC support
+      const webrtcStatusEl = document.getElementById("webrtc-status");
+      const hasRTCPeerConnection = typeof RTCPeerConnection !== "undefined";
+      const hasDataChannel =
+        hasRTCPeerConnection && typeof RTCDataChannel !== "undefined";
+      webrtcStatusEl.textContent = hasRTCPeerConnection
+        ? hasDataChannel
+          ? "Supported"
+          : "Partial (no DataChannel)"
+        : "Not supported";
+      console.log("WebRTC support:", { hasRTCPeerConnection, hasDataChannel });
+    </script>
+  </body>
 </html>
