@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node fix-imports.mjs && cp -r packages/webrtc/dist apps/example/",
     "dev": "tsc -w",
     "start": "serve apps/example",
     "lint": "eslint .",
@@ -19,6 +19,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
+    "globals": "^17.4.0",
     "prettier": "^3.0.0",
     "serve": "^14.2.6",
     "typescript": "^5.0.0",
